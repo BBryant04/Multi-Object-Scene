@@ -1,0 +1,58 @@
+<!--
+ - File: MOS.html
+ - Authors: Brandon Bryant & Randall Rinehart
+ - Class: COSC4103 Computer Graphics
+ - Assignment #5: Multi-Object: View-Based Interaction with Single Animation
+ - Due: 10/8/2025
+ - Description:
+-->
+
+
+<!DOCTYPE html>
+<head>
+	<meta charset="UTF-8">
+	<title>Multi-Object Scene</title>
+</head>
+<body>
+	<canvas id="glcanvas" width="512" height="512"></canvas>
+	<script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec3 aPosition;
+        attribute vec3 aNormal;
+        uniform mat4 uMVP;
+        uniform mat4 uModel;
+        varying vec3 vWorldPos;
+        varying vec3 vNormal;
+        void main() {
+            vec4 worldPos = uModel * vec4(aPosition, 1.0);
+            vWorldPos = worldPos.xyz;
+            vNormal = normalize(mat3(uModel) * aNormal);
+            gl_Position = uMVP * vec4(aPosition, 1.0);
+        }
+	</script>
+	<script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform vec3 uColor;
+        uniform vec3 uLightDir; // Direction FROM light TOWARD scene (world space)
+        uniform vec3 uEye;      // Camera position (world space)
+        varying vec3 vWorldPos;
+        varying vec3 vNormal;
+        void main() {
+            vec3 N = normalize(vNormal);
+            vec3 L = normalize(-uLightDir);        // Light incoming direction
+            float diff = max(dot(N, L), 0.0);
+
+            vec3 V = normalize(uEye - vWorldPos);  // View direction
+            vec3 H = normalize(L + V);             // Blinn-Phong half vector
+            float spec = pow(max(dot(N, H), 0.0), 32.0);
+
+            float ambient = 0.20;
+            float kd = 0.85;
+            float ks = 0.40;
+
+            vec3 color = uColor * (ambient + kd * diff) + vec3(1.0) * ks * spec;
+            gl_FragColor = vec4(color, 1.0);
+        }
+	</script>
+	<script src="MOS.js"></script>
+</body>
+</html>
