@@ -1,58 +1,80 @@
 <!--
- - File: MOS.html
- - Authors: Brandon Bryant & Randall Rinehart
- - Class: COSC4103 Computer Graphics
- - Assignment #5: Multi-Object: View-Based Interaction with Single Animation
- - Due: 10/8/2025
- - Description:
+	File: MOS.html
+	Authors: Brandon Bryant & Randall Rinehart
+	Class: COSC4103 Computer Graphics
+	Assignment #5: Multi-Object: View-Based Interaction with Single Animation
+	Due: 10/8/2025
+	Description:
 -->
-
-
 <!DOCTYPE html>
+<html lang="en">
 <head>
-	<meta charset="UTF-8">
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
 	<title>Multi-Object Scene</title>
+	<style>
+		html,body { margin:0; padding:0; height:100%; background:#111; color:#eee; font-family: system-ui, Arial, sans-serif; }
+		#glcanvas { width:100vw; height:100vh; display:block; }
+		#hud { position:fixed; top:8px; left:8px; background:#0008; padding:10px 14px; border:1px solid #444; border-radius:6px; font-size:13px; line-height:1.3; backdrop-filter: blur(4px); }
+		#hud kbd { background:#333; padding:2px 5px; border-radius:4px; font-size:11px; border:1px solid #555; }
+		a { color:#7ad; }
+	</style>
 </head>
 <body>
-	<canvas id="glcanvas" width="512" height="512"></canvas>
-	<script id="vertex-shader" type="x-shader/x-vertex">
-        attribute vec3 aPosition;
-        attribute vec3 aNormal;
-        uniform mat4 uMVP;
-        uniform mat4 uModel;
-        varying vec3 vWorldPos;
-        varying vec3 vNormal;
+	<canvas id="glcanvas"></canvas>
+
+	<!-- Sphere shaders -->
+	<script id="sphere-vs" type="x-shader/x-vertex">
+        attribute vec3 aPos;
+        attribute vec3 aNor;
+        uniform mat4 uProj, uView, uModel;
+        varying vec3 vN;
+        varying vec3 vWPos;
         void main() {
-            vec4 worldPos = uModel * vec4(aPosition, 1.0);
-            vWorldPos = worldPos.xyz;
-            vNormal = normalize(mat3(uModel) * aNormal);
-            gl_Position = uMVP * vec4(aPosition, 1.0);
+            vec4 wPos = uModel * vec4(aPos,1.0);
+            vWPos = wPos.xyz;
+            vN = mat3(uModel) * aNor;
+            gl_Position = uProj * uView * wPos;
         }
-	</script>
-	<script id="fragment-shader" type="x-shader/x-fragment">
+    </script>
+	<script id="sphere-fs" type="x-shader/x-fragment">
         precision mediump float;
-        uniform vec3 uColor;
-        uniform vec3 uLightDir; // Direction FROM light TOWARD scene (world space)
-        uniform vec3 uEye;      // Camera position (world space)
-        varying vec3 vWorldPos;
-        varying vec3 vNormal;
+        varying vec3 vN;
+        varying vec3 vWPos;
+        uniform vec3 uEye;
         void main() {
-            vec3 N = normalize(vNormal);
-            vec3 L = normalize(-uLightDir);        // Light incoming direction
-            float diff = max(dot(N, L), 0.0);
-
-            vec3 V = normalize(uEye - vWorldPos);  // View direction
-            vec3 H = normalize(L + V);             // Blinn-Phong half vector
-            float spec = pow(max(dot(N, H), 0.0), 32.0);
-
-            float ambient = 0.20;
-            float kd = 0.85;
-            float ks = 0.40;
-
-            vec3 color = uColor * (ambient + kd * diff) + vec3(1.0) * ks * spec;
-            gl_FragColor = vec4(color, 1.0);
+            vec3 N = normalize(vN);
+            vec3 L = normalize(vec3(0.5,1.0,0.3));
+            float diff = max(dot(N,L),0.0);
+            vec3 V = normalize(uEye - vWPos);
+            vec3 H = normalize(L+V);
+            float spec = pow(max(dot(N,H),0.0),32.0);
+            vec3 col = vec3(0.15,0.5,0.9)*0.4 + diff*vec3(0.15,0.5,0.9) + spec*vec3(1.0);
+            gl_FragColor = vec4(col,1.0);
         }
-	</script>
+    </script>
+
+	<!-- Grid shaders -->
+	<script id="grid-vs" type="x-shader/x-vertex">
+        attribute vec3 aPos;
+        uniform mat4 uProj, uView; varying float vFade;
+        void main() {
+            gl_Position = uProj * uView * vec4(aPos,1.0);
+            vFade = 1.0 - smoothstep(0.0, 10.0, length(aPos.xz));
+        }
+    </script>
+	<script id="grid-fs" type="x-shader/x-fragment">
+        precision mediump float;
+        varying float vFade;
+        void main() {
+            gl_FragColor = vec4(mix(vec3(0.15), vec3(0.4), vFade), 1.0);
+        }
+    </script>
+
+	<div id="hud">
+		<br>Drag - move camera | Wheel - zoom<br/>
+		<kbd>P</kbd> - toggle pulse | <kbd>R</kbd> - reset view<br/>
+	</div>
 	<script src="MOS.js"></script>
 </body>
 </html>
