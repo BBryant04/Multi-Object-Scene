@@ -1,10 +1,11 @@
 <!--
-	File: MOS.html
-	Authors: Brandon Bryant & Randall Rinehart
-	Class: COSC4103 Computer Graphics
-	Assignment #5: Multi-Object: View-Based Interaction with Single Animation
-	Due: 10/8/2025
-	Description:
+    File: MOS.html
+    Authors: Brandon Bryant & Randall Rinehart
+    Class: COSC4103 Computer Graphics
+    Assignment #5: Multi-Object: View-Based Interaction with Single Animation
+    Due: 10/8/2025
+    Description: Creates and formats the canvas, declares shaders and
+                 geometry of objects. 
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -17,14 +18,13 @@
 		#glcanvas { width:100vw; height:100vh; display:block; }
 		#hud { position:fixed; top:8px; left:8px; background:#0008; padding:10px 14px; border:1px solid #444; border-radius:6px; font-size:13px; line-height:1.3; backdrop-filter: blur(4px); }
 		#hud kbd { background:#333; padding:2px 5px; border-radius:4px; font-size:11px; border:1px solid #555; }
-		a { color:#7ad; }
 	</style>
 </head>
 <body>
 	<canvas id="glcanvas"></canvas>
 
-	<!-- Sphere shaders -->
-	<script id="sphere-vs" type="x-shader/x-vertex">
+    <!-- Object shaders -->
+	<script id="object-vs" type="x-shader/x-vertex">
         attribute vec3 aPos;
         attribute vec3 aNor;
         uniform mat4 uProj, uView, uModel;
@@ -37,11 +37,12 @@
             gl_Position = uProj * uView * wPos;
         }
     </script>
-	<script id="sphere-fs" type="x-shader/x-fragment">
+	<script id="object-fs" type="x-shader/x-fragment">
         precision mediump float;
         varying vec3 vN;
         varying vec3 vWPos;
         uniform vec3 uEye;
+        uniform vec3 uColor;
         void main() {
             vec3 N = normalize(vN);
             vec3 L = normalize(vec3(0.5,1.0,0.3));
@@ -49,22 +50,35 @@
             vec3 V = normalize(uEye - vWPos);
             vec3 H = normalize(L+V);
             float spec = pow(max(dot(N,H),0.0),32.0);
-            vec3 col = vec3(0.15,0.5,0.9)*0.4 + diff*vec3(0.15,0.5,0.9) + spec*vec3(1.0);
+            vec3 ambient = uColor * 0.25;
+            vec3 diffuse = uColor * diff;
+            vec3 specular = vec3(1.0) * spec;
+            vec3 col = ambient + diffuse + specular;
             gl_FragColor = vec4(col,1.0);
         }
     </script>
 
-	<!-- Shaders for new object will need to be added here -->
+    <!-- Star object (shape-one): yellow, spins + orbits -->
+    <script id="object-data-shape-one" type="application/json">
+        {"color":[1,1,0], "vertices":[0,0,0,1,0,0,0.309,0,0.951,-0.809,0,0.588,-0.809,0,-0.588,0.309,0,-0.951,0,0.6,0,0,-0.6,0,0.5,0,0,0.154,0,0.475,-0.404,0,0.294,-0.404,0,-0.294,0.154,0,-0.475],"indices":[0,1,6, 0,2,6, 0,3,6, 0,4,6, 0,5,6,0,1,7, 0,2,7, 0,3,7, 0,4,7, 0,5,7,6,1,8, 6,8,2, 6,2,9, 6,9,3, 6,3,10, 6,10,4, 6,4,11, 6,11,5, 6,5,12, 6,12,1, 7,1,8, 7,8,2, 7,2,9, 7,9,3, 7,3,10, 7,10,4, 7,4,11, 7,11,5, 7,5,12, 7,12,1]}
+    </script>
+
+    <!-- Pulsing polygon (shape-two): magenta, pulses -->
+    <script id="object-data-shape-two" type="application/json">
+        {"color":[1,0,1],"vertices":[4,0,0,2.0000000000000004,0,3.4641016151377544,-1.9999999999999991,0,3.464101615137755,-4,0,4.898587196589413e-16,-2.0000000000000018,0,-3.4641016151377535,1.9999999999999973,0,-3.464101615137756,3,1,1.732050807568877,2.1211504774498136e-16,1,3.4641016151377544,-2.999999999999999,1,1.7320508075688783,-3.0000000000000004,1,-1.7320508075688763,-6.363451432349441e-16,1,-3.4641016151377544,2.9999999999999987,1,-1.7320508075688787,0,2,0,4,0,0,2.0000000000000004,0,3.4641016151377544,-1.9999999999999991,0,3.464101615137755,-4,0,4.898587196589413e-16,-2.0000000000000018,0,-3.4641016151377535,1.9999999999999973,0,-3.464101615137756,3,-1,1.732050807568877,2.1211504774498136e-16,-1,3.4641016151377544,-2.999999999999999,-1,1.7320508075688783,-3.0000000000000004,-1,-1.7320508075688763,-6.363451432349441e-16,-1,-3.4641016151377544,2.9999999999999987,-1,-1.7320508075688787,0,-2,0],"indices":[0,1,6,1,6,7,1,2,7,2,7,8,2,3,8,3,8,9,3,4,9,4,9,10,4,5,10,5,10,11,5,0,11,0,11,6,6,7,12,7,12,12,7,8,12,8,12,12,8,9,12,9,12,12,9,10,12,10,12,12,10,11,12,11,12,12,11,6,12,6,12,12,13,14,19,14,19,20,14,15,20,15,20,21,15,16,21,16,21,22,16,17,22,17,22,23,17,18,23,18,23,24,18,13,24,13,24,19,19,20,25,20,25,25,20,21,25,21,25,25,21,22,25,22,25,25,22,23,25,23,25,25,23,24,25,24,25,25,24,19,25,19,25,25]}
+    </script>
 
 	<!-- Grid shaders -->
 	<script id="grid-vs" type="x-shader/x-vertex">
         attribute vec3 aPos;
-        uniform mat4 uProj, uView; varying float vFade;
+        uniform mat4 uProj, uView;
+        varying float vFade;
         void main() {
             gl_Position = uProj * uView * vec4(aPos,1.0);
             vFade = 1.0 - smoothstep(0.0, 10.0, length(aPos.xz));
         }
     </script>
+    
 	<script id="grid-fs" type="x-shader/x-fragment">
         precision mediump float;
         varying float vFade;
@@ -75,7 +89,7 @@
 
 	<div id="hud">
 		<br>Drag - move camera | Wheel - zoom<br/>
-		<kbd>P</kbd> - toggle pulse | <kbd>R</kbd> - reset view<br/>
+		<kbd>A</kbd> - toggle animation | <kbd>R</kbd> - reset view<br/>
 	</div>
 	<script src="MOS.js"></script>
 </body>
